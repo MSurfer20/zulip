@@ -4509,22 +4509,38 @@ def do_update_embedded_data(user_profile: UserProfile,
                             message: Message,
                             content: Optional[str],
                             rendered_content: Optional[str]) -> None:
+    print("USER PROFULE: ",user_profile)
+    print("MESSAGE: ",message)
+    print("CONTENT: ",content)
+    print("Rendered Content: ",rendered_content)
     event: Dict[str, Any] = {
         'type': 'update_message',
-        'message_id': message.id}
+        'user_id': user_profile.id,
+        'message_id': message.id,
+    }
+
     changed_messages = [message]
 
     ums = UserMessage.objects.filter(message=message.id)
 
     if content is not None:
+        assert rendered_content is not None
         update_user_message_flags(message, ums)
+        event["orig_content"] = message.content
+        print("ERROR GO BRRRRRRRRRRRRRRRRRRr")
+        print(event['orig_content'])
+        event['orig_rendered_content'] = message.rendered_content
         message.content = content
         message.rendered_content = rendered_content
         message.rendered_content_version = markdown_version
         event["content"] = content
         event["rendered_content"] = rendered_content
+        event['prev_rendered_content_version'] = message.rendered_content_version
+        event['is_me_message'] = Message.is_status_message(content, rendered_content)
 
-    message.save(update_fields=["content", "rendered_content"])
+
+    save_message_for_edit_use_case(message=message)
+    # message.save(update_fields=["content", "rendered_content"])
 
     event['message_ids'] = update_to_dict_cache(changed_messages)
 
@@ -4534,7 +4550,6 @@ def do_update_embedded_data(user_profile: UserProfile,
             'flags': um.flags_list(),
         }
     send_event(user_profile.realm, event, list(map(user_info, ums)))
-
 class DeleteMessagesEvent(TypedDict, total=False):
     type: str
     message_ids: List[int]
