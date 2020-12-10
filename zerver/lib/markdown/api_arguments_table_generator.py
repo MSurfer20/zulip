@@ -93,6 +93,7 @@ class APIArgumentsTablePreprocessor(Preprocessor):
         argument_template = """
 <div class="api-argument" id="parameter-{argument}">
     <p class="api-argument-name"><strong>{argument}</strong> {required} {deprecated} <a href="#parameter-{argument}" class="api-argument-hover-link"><i class="fa fa-chain"></i></a></p>
+    <div><strong>Data Type: </strong>{type}</div>
     <div class="api-example">
         <span class="api-argument-example-label">Example</span>: <code>{example}</code>
     </div>
@@ -112,6 +113,25 @@ class APIArgumentsTablePreprocessor(Preprocessor):
             default = argument.get('schema', {}).get('default')
             if default is not None:
                 description += f'\nDefaults to `{json.dumps(default)}`.'
+            data_type = ""
+            if 'schema' in argument:
+                schema = argument['schema']
+                if 'oneOf' in schema:
+                    for i in argument['schema']['oneOf']:
+                        data_type = data_type + i['type'] + " or "
+                    data_type = data_type[:-3]
+                else:
+                    data_type = argument.get('schema', {}).get('type')
+            else:
+                data_type = argument['content']['application/json']['schema']['type']
+                if 'items' in argument['content']['application/json']['schema']:
+                    data_type = data_type + " of "
+                    if 'oneOf' in argument['content']['application/json']['schema']['items']:
+                        for i in argument['content']['application/json']['schema']['items']['oneOf']:
+                            data_type = data_type+i['type'] + " or "
+                        data_type = data_type[:-3]
+                    else:
+                        data_type = data_type + argument['content']['application/json']['schema']['items']['type']
 
             # TODO: OpenAPI allows indicating where the argument goes
             # (path, querystring, form data...).  We should document this detail.
@@ -146,6 +166,7 @@ class APIArgumentsTablePreprocessor(Preprocessor):
                 required=required_block,
                 deprecated=deprecated_block,
                 description=md_engine.convert(description),
+                type=data_type
             ))
 
         return table
