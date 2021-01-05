@@ -22,7 +22,7 @@ from zerver.openapi.curl_param_value_generators import (
 )
 
 
-def test_generated_curl_examples_for_success(client: Client) -> None:
+def test_generated_curl_examples_for_success(client: Client, owner_client: Client) -> None:
     authentication_line = f"{client.email}:{client.api_key}"
     # A limited Markdown engine that just processes the code example syntax.
     realm = get_realm("zulip")
@@ -50,9 +50,14 @@ def test_generated_curl_examples_for_success(client: Client) -> None:
                 unescaped_html = html.unescape(curl_command_html)
                 curl_command_text = unescaped_html[len("<p><code>curl\n") : -len("</code></p>")]
 
+                reactivation_flag = 0
+                user_id = 0
                 curl_command_text = curl_command_text.replace(
                     "BOT_EMAIL_ADDRESS:BOT_API_KEY", authentication_line
                 )
+                if file_name == "templates/zerver/api/deactivate-own-user.md":
+                    reactivation_flag = 1
+                    user_id = client.get_profile()["user_id"]
 
                 print("Testing {} ...".format(curl_command_text.split("\n")[0]))
 
@@ -69,6 +74,8 @@ def test_generated_curl_examples_for_success(client: Client) -> None:
                     )
                     response = json.loads(response_json)
                     assert response["result"] == "success"
+                    if reactivation_flag:
+                        owner_client.reactivate_user_by_id(user_id)
                 except (AssertionError, Exception):
                     error_template = """
 Error verifying the success of the API documentation curl example.

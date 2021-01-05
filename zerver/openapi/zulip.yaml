@@ -4518,7 +4518,7 @@ paths:
                           },
                       }
     delete:
-      operationId: deactivate_my_account
+      operationId: deactivate_own_user
       tags: ["users"]
       description: |
         Delete the requesting user from the realm.
