@@ -16,7 +16,9 @@ from typing import (
     Tuple,
     Union,
 )
+import types
 from unittest.mock import MagicMock, patch
+from pprint import pprint
 
 import yaml
 from django.http import HttpResponse
@@ -491,6 +493,20 @@ do not match the types declared in the implementation of {function.__name__}.\n"
 
                 vtype = self.get_standardized_argument_type(function.__annotations__[pname])
                 vname = defval.post_var_name
+                if defval.converter:
+                    converter_list=[]
+                    if(isinstance(defval.converter, types.FunctionType)):
+                        paramter_list=inspect.signature(defval.converter).parameters.items()
+                        for parameter in paramter_list:
+                            if((parameter[1]._default is inspect._empty)):
+                                continue
+                            converter_list.append(parameter[1]._annotation)
+                    #The logic is that either all parameters in converter
+                    #will have default values and vname is not mandatory
+                    #or there will be one mandatory parameter with type same
+                    #as vname.
+                    assert(len(converter_list)==0 or (len(converter_list)==1 and converter_list[0]==vtype))
+
                 assert vname is not None
                 if vname in json_params:
                     # Here we have two cases.  If the the REQ type is
