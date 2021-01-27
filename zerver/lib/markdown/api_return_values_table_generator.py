@@ -9,6 +9,8 @@ from markdown.preprocessors import Preprocessor
 
 from zerver.openapi.openapi import get_openapi_return_values, likely_deprecated_parameter
 
+from .api_arguments_table_generator import generate_data_type
+
 REGEXP = re.compile(r'\{generate_return_values_table\|\s*(.+?)\s*\|\s*(.+)\s*\}')
 
 class MarkdownReturnValuesTableGenerator(Extension):
@@ -59,11 +61,14 @@ class APIReturnValuesTablePreprocessor(Preprocessor):
                 done = True
         return lines
 
-    def render_desc(self, description: str, spacing: int, return_value: Optional[str]=None) -> str:
+    def render_desc(self, description: str, spacing: int, data_type: str, return_value: Optional[str]=None) -> str:
         description = description.replace('\n', '\n' + ((spacing + 4) * ' '))
         if return_value is None:
-            return (spacing * " ") + "* " + description
-        return (spacing * " ") + "* `" + return_value + "`: " + description
+            arr = description.split(": ", 1)
+            if len(arr) == 1:
+                return (spacing * " ") + "* " + description
+            return (spacing * " ") + "* " + arr[0] + ": " + '<span class="api-response-datatype">' + data_type + "</span> "  + arr[1]
+        return (spacing * " ") + "* `" + return_value + "`: " + '<span class="api-response-datatype">' + data_type + "</span> "  + description
 
     def render_table(self, return_values: Dict[str, Any], spacing: int) -> List[str]:
         IGNORE = ["result", "msg"]
@@ -77,28 +82,32 @@ class APIReturnValuesTablePreprocessor(Preprocessor):
                 # description of the endpoint. Then for each element of oneOf there is a
                 # specialized description for that particular case. The description used
                 # right below is the main description.
+                data_type = generate_data_type(return_values[return_value])
                 ans.append(self.render_desc(return_values[return_value]['description'],
-                                            spacing, return_value))
+                                            spacing, data_type, return_value))
                 for element in return_values[return_value]['oneOf']:
                     if 'description' not in element:
                         continue
                     # Add the specialized description of the oneOf element.
-                    ans.append(self.render_desc(element['description'], spacing + 4))
+                    data_type = generate_data_type(element)
+                    ans.append(self.render_desc(element['description'], spacing + 4, data_type))
                     # If the oneOf element is an object schema then render the documentation
                     # of its keys.
                     if 'properties' in element:
                         ans += self.render_table(element['properties'], spacing + 8)
                 continue
             description = return_values[return_value]['description']
+            data_type = generate_data_type(return_values[return_value])
             # Test to make sure deprecated keys are marked appropriately.
             if likely_deprecated_parameter(description):
                 assert(return_values[return_value]['deprecated'])
-            ans.append(self.render_desc(description, spacing, return_value))
+            ans.append(self.render_desc(description, spacing, data_type, return_value))
             if 'properties' in return_values[return_value]:
                 ans += self.render_table(return_values[return_value]['properties'], spacing + 4)
             if return_values[return_value].get('additionalProperties', False):
+                data_type = generate_data_type(return_values[return_value]['additionalProperties'])
                 ans.append(self.render_desc(return_values[return_value]['additionalProperties']
-                                            ['description'], spacing + 4))
+                                            ['description'], spacing + 4, data_type))
                 if 'properties' in return_values[return_value]['additionalProperties']:
                     ans += self.render_table(return_values[return_value]['additionalProperties']
                                              ['properties'], spacing + 8)
