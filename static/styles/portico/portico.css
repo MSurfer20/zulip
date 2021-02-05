@@ -1717,17 +1717,17 @@ label.label-title {
         font-size: 12px;
         color: hsl(0, 50%, 60%);
     }
+}
 
-    .api-argument-datatype {
+.api-parameter-datatype {
+    color: hsl(176, 46.4%, 41%);
+}
+
+.api-request-parameter-datatype {
+        @extend .api-parameter-datatype;
         text-transform: lowercase;
         font-weight: 600;
         font-size: 14px;
-        color: hsl(176, 46.4%, 41%);
-    }
-}
-
-.api-response-datatype {
-    color: hsl(176, 46.4%, 41%);
 }
 
 .desktop-redirect-box {

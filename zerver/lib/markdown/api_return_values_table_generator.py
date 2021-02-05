@@ -67,8 +67,8 @@ class APIReturnValuesTablePreprocessor(Preprocessor):
             arr = description.split(": ", 1)
             if len(arr) == 1:
                 return (spacing * " ") + "* " + description
-            return (spacing * " ") + "* " + arr[0] + ": " + '<span class="api-response-datatype">' + data_type + "</span> "  + arr[1]
-        return (spacing * " ") + "* `" + return_value + "`: " + '<span class="api-response-datatype">' + data_type + "</span> "  + description
+            return (spacing * " ") + "* " + arr[0] + ": " + '<span class="api-parameter-datatype">' + data_type + "</span> "  + arr[1]
+        return (spacing * " ") + "* `" + return_value + "`: " + '<span class="api-parameter-datatype">' + data_type + "</span> "  + description
 
     def render_table(self, return_values: Dict[str, Any], spacing: int) -> List[str]:
         IGNORE = ["result", "msg"]
